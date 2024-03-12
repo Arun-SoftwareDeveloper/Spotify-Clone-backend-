@@ -23,4 +23,13 @@ exports.createSong = async (req, res) => {
   }
 };
 
-// You can add other CRUD operations as needed (update, delete, etc.)
+exports.getSongsByArtist = async (req, res) => {
+  const { artistName } = req.params;
+
+  try {
+    const songs = await Song.find({ artist: artistName });
+    res.json(songs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
