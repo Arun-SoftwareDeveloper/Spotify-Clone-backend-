@@ -13,7 +13,7 @@ app.use(cors());
 dotenv.config();
 ConfigDB();
 
-app.use("/user", UserRoutes);
+app.use("/", UserRoutes);
 app.use("/", SongsRoutes);
 app.get("/", (req, res) => {
   res.send("We Developed the backend Successfully");

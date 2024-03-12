@@ -62,7 +62,7 @@ const LoginUser = async (req, res) => {
       existingUser.password
     );
     if (!comparePassword) {
-      return res.status(402).send({ message: "Incorrect password" });
+      return res.status(401).send({ message: "Incorrect password" });
     }
 
     const token = jwt.sign(
@@ -70,6 +70,7 @@ const LoginUser = async (req, res) => {
       "arunramasamy46",
       { expiresIn: "2h" }
     );
+    console.log(token);
 
     return res.status(201).send({ message: "Login Successful", token });
   } catch (error) {
