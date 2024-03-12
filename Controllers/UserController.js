@@ -1,9 +1,8 @@
 const User = require("../Models/UserModel");
-const bcryt = require("bcrypt");
-const { error } = require("console");
+const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
-const { encode } = require("punycode");
+const jwt = require("jsonwebtoken");
 
 const RegisterUser = async (req, res) => {
   try {
@@ -14,9 +13,17 @@ const RegisterUser = async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       console.log("User already registered");
-      return res.status(400).send({ message: "User already registered" });
+      const token = jwt.sign(
+        { email: existingUser.email, userId: existingUser._id },
+        "arunramasamy46",
+        { expiresIn: "2h" }
+      );
+      return res
+        .status(400)
+        .send({ message: "User already registered", token });
     }
-    const hashedPassword = await bcryt.hash(password, 10);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       email,
@@ -26,7 +33,16 @@ const RegisterUser = async (req, res) => {
       gender,
     });
     await newUser.save();
-    return res.status(200).send({ message: "User registered Successfull" });
+
+    const token = jwt.sign(
+      { email: newUser.email, userId: newUser._id },
+      "arunramasamy46",
+      { expiresIn: "2h" }
+    );
+
+    return res
+      .status(200)
+      .send({ message: "User registered successfully", token });
   } catch (error) {
     return res.status(500).send({ message: "Internal Server Error" + error });
   }
@@ -41,14 +57,37 @@ const LoginUser = async (req, res) => {
       return res.status(401).send({ message: "User not found" });
     }
 
-    const comparePassword = await bcryt.compare(
+    const comparePassword = await bcrypt.compare(
       password,
       existingUser.password
     );
     if (!comparePassword) {
       return res.status(402).send({ message: "Incorrect password" });
     }
-    return res.status(201).send({ message: "Login Successsful" });
+
+    const token = jwt.sign(
+      { email: existingUser.email, userId: existingUser._id },
+      "arunramasamy46",
+      { expiresIn: "2h" }
+    );
+
+    return res.status(201).send({ message: "Login Successful", token });
+  } catch (error) {
+    return res.status(500).send({ message: "Internal Server Error" + error });
+  }
+};
+
+const verifyToken = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    jwt.verify(token, "arunramasamy46", (err, decoded) => {
+      if (err) {
+        console.log("UnAuthorized User");
+        return res.status(501).send({ message: "UnAuthorized User" });
+      }
+      req.userData = decoded;
+      next();
+    });
   } catch (error) {
     return res.status(500).send({ message: "Internal Server Error" + error });
   }
@@ -126,4 +165,10 @@ const ResetPassword = async (req, res) => {
   }
 };
 
-module.exports = { RegisterUser, LoginUser, ForgotPassword, ResetPassword };
+module.exports = {
+  RegisterUser,
+  LoginUser,
+  ForgotPassword,
+  ResetPassword,
+  verifyToken,
+};
